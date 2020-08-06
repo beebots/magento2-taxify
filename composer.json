@@ -1,0 +1,34 @@
+{
+    "name": "beebots/magento2-taxify",
+    "description": "",
+    "require": {
+        "php": ">=7.1.0",
+        "magento/module-tax": "null",
+    },
+    "type": "magento2-module",
+    "version": "0.1.0",
+    "license": [
+
+    ],
+    "support": {
+        "docs": "https://github.com/beebots/magento2-taxify",
+        "issues": "https://github.com/beebots/magento2-taxify/issues",
+        "source": "https://github.com/beebots/magento2-taxify"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "BeeBots\\Taxify\\": ""
+        }
+    },
+    "extra": {
+        "map": [
+            [
+                "*",
+                "BeeBots/Taxify"
+            ]
+        ]
+    }
+}
