@@ -1,0 +1,29 @@
+<?php
+
+namespace BeeBots\Taxify\Model\TaxifyApi;
+
+use Magento\Framework\ObjectManagerInterface;
+use rk\Taxify\Communicator;
+
+class CommunicatorFactory
+{
+    /** @var TaxifyFactory */
+    private $taxifyFactory;
+
+    /**
+     * CommunicatorFactory constructor.
+     *
+     * @param TaxifyFactory $taxifyFactory
+     */
+    public function __construct(
+        TaxifyFactory $taxifyFactory
+    ) {
+        $this->taxifyFactory = $taxifyFactory;
+    }
+
+    public function create()
+    {
+        $taxify = $this->taxifyFactory->create();
+        return new Communicator($taxify);
+    }
+}

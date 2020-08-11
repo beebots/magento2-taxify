@@ -1,0 +1,27 @@
+<?php
+namespace BeeBots\Taxify\Model\TaxifyApi;
+
+use BeeBots\Taxify\Model\Config;
+use rk\Taxify\Taxify;
+
+class TaxifyFactory
+{
+    /** @var Config */
+    private $taxifyConfig;
+
+    /**
+     * TaxifyFactory constructor.
+     *
+     * @param Config $taxifyConfig
+     */
+    public function __construct(
+        Config $taxifyConfig
+    ) {
+        $this->taxifyConfig = $taxifyConfig;
+    }
+
+    public function create()
+    {
+        return new Taxify($this->taxifyConfig->getApiKey(), Taxify::ENV_PROD, false);
+    }
+}
