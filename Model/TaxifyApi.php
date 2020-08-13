@@ -1,10 +1,14 @@
 <?php
+
 namespace BeeBots\Taxify\Model;
 
+use Magento\Customer\Model\Data\Address;
 use Magento\Directory\Model\Region;
 use Magento\Directory\Model\RegionFactory;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Message\ManagerInterface;
+use Magento\Tax\Api\Data\QuoteDetailsInterface;
 use Magento\Tax\Api\Data\TaxClassKeyInterface;
 use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Model\Sales\Quote\QuoteDetails;
@@ -12,6 +16,7 @@ use Psr\Log\LoggerInterface;
 use rk\Taxify\AddressFactory;
 use rk\Taxify\Communicator;
 use rk\Taxify\Requests\CalculateTaxFactory;
+use rk\Taxify\Responses\CalculateTax;
 use rk\Taxify\Taxify;
 use rk\Taxify\TaxLineFactory;
 use Throwable;
@@ -45,6 +50,9 @@ class TaxifyApi
     /** @var TaxClassRepositoryInterface */
     private $taxClassRepository;
 
+    /** @var ManagerInterface */
+    private $messageManager;
+
     /**
      * TaxifyApi constructor.
      *
@@ -56,6 +64,7 @@ class TaxifyApi
      * @param LoggerInterface $logger
      * @param Config $taxifyConfig
      * @param TaxClassRepositoryInterface $taxClassRepository
+     * @param ManagerInterface $messageManager
      */
     public function __construct(
         CalculateTaxFactory $calculateTaxFactory,
@@ -65,7 +74,8 @@ class TaxifyApi
         RegionFactory $regionFactory,
         LoggerInterface $logger,
         Config $taxifyConfig,
-        TaxClassRepositoryInterface $taxClassRepository
+        TaxClassRepositoryInterface $taxClassRepository,
+        ManagerInterface $messageManager
     ) {
         $this->calculateTaxFactory = $calculateTaxFactory;
         $this->addressFactory = $addressFactory;
@@ -75,6 +85,7 @@ class TaxifyApi
         $this->regionFactory = $regionFactory;
         $this->taxifyConfig = $taxifyConfig;
         $this->taxClassRepository = $taxClassRepository;
+        $this->messageManager = $messageManager;
     }
 
     /**
@@ -83,19 +94,20 @@ class TaxifyApi
      *
      * @param QuoteDetails $quote
      *
-     * @return \rk\Taxify\ResponseInterface|\rk\Taxify\Responses\CalculateTax|null
+     * @return \rk\Taxify\Responses\CalculateTax|null
      */
-    public function getTaxForQuote(QuoteDetails $quote)
+    public function getTaxForQuote(QuoteDetailsInterface $quote)
     {
+        //TODO: Implement a response cache
         $taxResponse = null;
 
         $shippingAddress = $quote->getShippingAddress();
-        if (! $shippingAddress) {
+        if (! $this->shippingAddressIsUsable($shippingAddress)) {
             return $taxResponse;
         }
         $region = $this->getRegionById($shippingAddress->getRegion()->getRegionId());
-        $street1 = $shippingAddress->getStreet()[0] ?? null;
-        $street2 = $shippingAddress->getStreet()[1] ?? null;
+        $street1 = $shippingAddress->getStreet()[0] ?? '';
+        $street2 = $shippingAddress->getStreet()[1] ?? '';
         $request = $this->calculateTaxFactory->create()
             ->setDocumentKey('quote' . $quote->getId())
             ->setTaxDate(time())
@@ -112,7 +124,7 @@ class TaxifyApi
                 $this->addressFactory->create()
                     ->setCountry($shippingAddress->getCountryId())
                     ->setRegion($region->getCode() ?? '')
-                    ->setCity($shippingAddress->getCity())
+                    ->setCity($shippingAddress->getCity() ?? '')
                     ->setPostalCode($shippingAddress->getPostcode())
                     ->setStreet1($street1)
                     ->setStreet2($street2)
@@ -125,7 +137,7 @@ class TaxifyApi
             $priceForTaxCalculation = $extensionAttributes->getPriceForTaxCalculation() ?? $quoteItem->getUnitPrice();
             $rowTotal = $priceForTaxCalculation * $quoteItem->getQuantity();
             $productName = $extensionAttributes->getProductName();
-            $taxClassKey = $quoteItem->getTaxClassKey();
+            $taxifyTaxabilityCode = $this->getTaxifyTaxabilityCode($quoteItem);
 
             $request->addLine(
                 $this->taxLineFactory->create()
@@ -133,6 +145,7 @@ class TaxifyApi
                     ->setQuantity($quoteItem->getQuantity())
                     ->setActualExtendedPrice($rowTotal)
                     ->setItemDescription($productName)
+                    ->setItemTaxabilityCode($taxifyTaxabilityCode)
             );
         }
 
@@ -141,7 +154,10 @@ class TaxifyApi
             $communicator = new Communicator($taxify);
             $taxResponse = $request->execute($communicator);
         } catch (Throwable $e) {
-            $this->logger->error('Exception thrown calling taxify', ['exception' => $e]);
+            $this->logger->error('Error get rates from Taxify', ['exception' => $e]);
+            $this->messageManager->addErrorMessage(
+                __('Unable to calculate taxes. This could be caused by an invalid address provided in checkout.')
+            );
         }
 
         return $taxResponse;
@@ -149,6 +165,7 @@ class TaxifyApi
 
     /**
      * @param int $regionId
+     *
      * @return Region
      */
     protected function getRegionById($regionId)
@@ -162,7 +179,7 @@ class TaxifyApi
     private function getTaxifyTaxabilityCode($quoteItem)
     {
         $taxClassId = $quoteItem->getTaxClassKey()
-            && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
+        && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
             ? $quoteItem->getTaxClassKey()->getValue()
             : $quoteItem->getTaxClassId();
 
@@ -172,7 +189,7 @@ class TaxifyApi
 
     private function getMagentoTaxClassNameById($taxClassId)
     {
-        if (!$taxClassId) {
+        if (! $taxClassId) {
             return 'None';
         }
 
@@ -211,5 +228,12 @@ class TaxifyApi
             default:
                 return TaxifyConstants::ITEM_TAX_CODE_TAXABLE;
         }
+    }
+
+    private function shippingAddressIsUsable(Address $shippingAddress)
+    {
+        return $shippingAddress
+            && $shippingAddress->getCountryId()
+            && $shippingAddress->getPostcode();
     }
 }
