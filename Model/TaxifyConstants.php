@@ -26,4 +26,6 @@ class TaxifyConstants
 
     const TAX_DETAIL_TYPE_SHIPPING = "shipping";
     const TAX_DETAIL_TYPE_PRODUCT_AND_SHIPPING = "product_and_shipping";
+
+    const MESSAGE_KEY = 'taxify-messages';
 }

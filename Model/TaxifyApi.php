@@ -2,15 +2,14 @@
 
 namespace BeeBots\Taxify\Model;
 
+use BeeBots\Taxify\Helper\TaxClassHelper;
 use Magento\Customer\Model\Data\Address;
 use Magento\Directory\Model\Region;
 use Magento\Directory\Model\RegionFactory;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Tax\Api\Data\QuoteDetailsInterface;
 use Magento\Tax\Api\Data\TaxClassKeyInterface;
-use Magento\Tax\Api\TaxClassRepositoryInterface;
 use Magento\Tax\Model\Sales\Quote\QuoteDetails;
 use Psr\Log\LoggerInterface;
 use rk\Taxify\AddressFactory;
@@ -47,11 +46,11 @@ class TaxifyApi
     /** @var Config */
     private $taxifyConfig;
 
-    /** @var TaxClassRepositoryInterface */
-    private $taxClassRepository;
-
     /** @var ManagerInterface */
     private $messageManager;
+
+    /** @var TaxClasshelper */
+    private $taxClassHelper;
 
     /**
      * TaxifyApi constructor.
@@ -63,7 +62,7 @@ class TaxifyApi
      * @param RegionFactory $regionFactory
      * @param LoggerInterface $logger
      * @param Config $taxifyConfig
-     * @param TaxClassRepositoryInterface $taxClassRepository
+     * @param TaxClasshelper $taxClassHelper
      * @param ManagerInterface $messageManager
      */
     public function __construct(
@@ -74,7 +73,7 @@ class TaxifyApi
         RegionFactory $regionFactory,
         LoggerInterface $logger,
         Config $taxifyConfig,
-        TaxClassRepositoryInterface $taxClassRepository,
+        TaxClasshelper $taxClassHelper,
         ManagerInterface $messageManager
     ) {
         $this->calculateTaxFactory = $calculateTaxFactory;
@@ -84,8 +83,8 @@ class TaxifyApi
         $this->scopeConfig = $scopeConfig;
         $this->regionFactory = $regionFactory;
         $this->taxifyConfig = $taxifyConfig;
-        $this->taxClassRepository = $taxClassRepository;
         $this->messageManager = $messageManager;
+        $this->taxClassHelper = $taxClassHelper;
     }
 
     /**
@@ -94,7 +93,7 @@ class TaxifyApi
      *
      * @param QuoteDetails $quote
      *
-     * @return \rk\Taxify\Responses\CalculateTax|null
+     * @return CalculateTax|null
      */
     public function getTaxForQuote(QuoteDetailsInterface $quote)
     {
@@ -155,10 +154,7 @@ class TaxifyApi
             $communicator = new Communicator($taxify);
             $taxResponse = $request->execute($communicator);
         } catch (Throwable $e) {
-            $this->logger->error('Error get rates from Taxify', ['exception' => $e]);
-            $this->messageManager->addErrorMessage(
-                __('Unable to calculate taxes. This could be caused by an invalid address provided in checkout.')
-            );
+            $this->logger->error('Error getting rates from Taxify', ['exception' => $e]);
         }
 
         return $taxResponse;
@@ -184,51 +180,8 @@ class TaxifyApi
             ? $quoteItem->getTaxClassKey()->getValue()
             : $quoteItem->getTaxClassId();
 
-        $taxClassName = $this->getMagentoTaxClassNameById($taxClassId);
-        return $this->getTaxifyTaxabilityCodeFromMagentoCode($taxClassName);
-    }
-
-    private function getMagentoTaxClassNameById($taxClassId)
-    {
-        if (! $taxClassId) {
-            return 'None';
-        }
-
-        try {
-            return $this->taxClassRepository->get($taxClassId)
-                ->getClassName();
-        } catch (NoSuchEntityException $exception) {
-            $this->logger->critical($exception);
-            return 'None';
-        }
-    }
-
-    private function getTaxifyTaxabilityCodeFromMagentoCode($taxClassName)
-    {
-        switch ($taxClassName) {
-            case $this->taxifyConfig->getMageTaxClassNameForCandy():
-                return TaxifyConstants::ITEM_TAX_CODE_CANDY;
-            case $this->taxifyConfig->getMageTaxClassNameForClothing():
-                return TaxifyConstants::ITEM_TAX_CODE_CLOTHING;
-            case $this->taxifyConfig->getMageTaxClassNameForExemptservice():
-                return TaxifyConstants::ITEM_TAX_CODE_EXEMPTSERVICE;
-            case $this->taxifyConfig->getMageTaxClassNameForFood():
-                return TaxifyConstants::ITEM_TAX_CODE_FOOD;
-            case $this->taxifyConfig->getMageTaxClassNameForFoodservice():
-                return TaxifyConstants::ITEM_TAX_CODE_FOODSERVICE;
-            case $this->taxifyConfig->getMageTaxClassNameForFreight():
-                return TaxifyConstants::ITEM_TAX_CODE_FREIGHT;
-            case $this->taxifyConfig->getMageTaxClassNameForInstallation():
-                return TaxifyConstants::ITEM_TAX_CODE_INSTALLATION;
-            case $this->taxifyConfig->getMageTaxClassNameForNontax():
-                return TaxifyConstants::ITEM_TAX_CODE_NONTAX;
-            case $this->taxifyConfig->getMageTaxClassNameForProservice():
-                return TaxifyConstants::ITEM_TAX_CODE_PROSERVICE;
-            case $this->taxifyConfig->getMageTaxClassNameForSupplements():
-                return TaxifyConstants::ITEM_TAX_CODE_SUPPLEMENTS;
-            default:
-                return TaxifyConstants::ITEM_TAX_CODE_TAXABLE;
-        }
+        $taxClassName = $this->taxClassHelper->getMagentoTaxClassNameById($taxClassId);
+        return $this->taxClassHelper->getTaxifyTaxabilityCodeFromMagentoTaxClassName($taxClassName);
     }
 
     private function shippingAddressIsUsable(Address $shippingAddress)

@@ -1,6 +1,7 @@
 <?php
 namespace BeeBots\Taxify\Plugin;
 
+use BeeBots\Taxify\Helper\TaxClassHelper;
 use BeeBots\Taxify\Model\Calculator;
 use BeeBots\Taxify\Model\Config;
 use BeeBots\Taxify\Model\TaxifyApi;
@@ -19,21 +20,27 @@ class TaxCalculationPlugin
     /** @var Calculator */
     private $calculator;
 
+    /** @var TaxClassHelper */
+    private $taxClassHelper;
+
     /**
      * TaxCalculationPlugin constructor.
      *
      * @param TaxifyApi $taxifyApi
      * @param Config $config
      * @param Calculator $calculator
+     * @param TaxClassHelper $taxClassHelper
      */
     public function __construct(
         TaxifyApi $taxifyApi,
         Config $config,
-        Calculator $calculator
+        Calculator $calculator,
+        TaxClassHelper $taxClassHelper
     ) {
         $this->taxifyApi = $taxifyApi;
         $this->config = $config;
         $this->calculator = $calculator;
+        $this->taxClassHelper = $taxClassHelper;
     }
 
     public function aroundCalculateTax(
@@ -45,7 +52,8 @@ class TaxCalculationPlugin
         $round = $arguments[2] ?? true;
 
         if (! $this->config->isEnabled()
-            || !$this->quoteIsUsableForTaxifyCall($quoteDetails)) {
+            || !$this->quoteIsUsableForTaxifyCall($quoteDetails)
+            || $this->customerTaxClassIsExempt($quoteDetails->getCustomerTaxClassId())) {
             return $super(...$arguments);
         }
 
@@ -79,5 +87,11 @@ class TaxCalculationPlugin
         $items = $quoteDetails->getItems();
         return ! empty($items)
             && ! ($quoteDetails->getBillingAddress() === null && $quoteDetails->getShippingAddress() === null);
+    }
+
+    public function customerTaxClassIsExempt(int $customerTaxClassId)
+    {
+        //TODO: Implement this
+        return false;
     }
 }

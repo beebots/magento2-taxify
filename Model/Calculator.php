@@ -144,7 +144,7 @@ class Calculator
                 foreach ($childrenByParent[$item->getCode()] as $child) {
                     /** @var QuoteDetailsItemInterface $child */
 
-                    $resultItem = $resultItems[$child->getCode()];
+                    $resultItem = $resultItems[$child->getCode()] ?? null;
                     $processedItem = $resultItem
                         ? $this->createTaxDetailsItem($child, $resultItem, $round)
                         : $this->createEmptyDetailsTaxItem($child);
@@ -180,7 +180,7 @@ class Calculator
                     ->setRowTax($this->optionalRound($rowTax, $round));
             // Aggregation to $taxDetails takes place on the child level
             } else {
-                $resultItem = $resultItems[$item->getCode()];
+                $resultItem = $resultItems[$item->getCode()] ?? null;
                 $processedItem = $resultItem
                     ? $this->createTaxDetailsItem($item, $resultItem, $round)
                     : $this->createEmptyDetailsTaxItem($item);
