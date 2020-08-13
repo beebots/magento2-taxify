@@ -80,25 +80,6 @@ class TaxCalculationPlugin
     {
         $items = $quoteDetails->getItems();
         return ! empty($items)
-            && ! ($quoteDetails->getBillingAddress() === null && $quoteDetails->getShippingAddress() === null)
-            && ! $this->onlyShipping($items);
-    }
-
-    /**
-     * Function: onlyShipping
-     *
-     * @param array $items
-     *
-     * @return bool
-     */
-    private function onlyShipping(array $items)
-    {
-        foreach ($items as $item) {
-            if ($item->getCode() !== 'shipping') {
-                return false;
-            }
-        }
-
-        return true;
+            && ! ($quoteDetails->getBillingAddress() === null && $quoteDetails->getShippingAddress() === null);
     }
 }

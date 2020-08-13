@@ -1,5 +1,4 @@
 <?php
-
 namespace BeeBots\Taxify\Model;
 
 use BeeBots\Taxify\Helper\PriceForTax;
@@ -19,6 +18,11 @@ use Psr\Log\LoggerInterface;
 use rk\Taxify\Responses\CalculateTax;
 use rk\Taxify\TaxLine;
 
+/**
+ * Class Calculator
+ *
+ * @package BeeBots\Taxify\Model
+ */
 class Calculator
 {
     /** @var TaxDetailsInterfaceFactory */
@@ -103,7 +107,6 @@ class Calculator
         /** @var TaxLine[] $resultItems */
         $resultItems = [];
         foreach ($result->getLines() as $lineItem) {
-            //TODO: Make sure line number is the right thing to use here
             $resultItems[$lineItem->getLineNumber()] = $lineItem;
         }
 
@@ -229,6 +232,7 @@ class Calculator
                     ->setAmount($itemAppliedTax->getAmount())
                     ->setTaxRateKey($itemAppliedTax->getTaxRateKey())
                     ->setRates($rates);
+                $appliedTaxes[$taxId] = $appliedTax;
             } else {
                 $appliedTaxes[$taxId]->setAmount($appliedTaxes[$taxId]->getAmount() + $itemAppliedTax->getAmount());
             }
@@ -244,7 +248,7 @@ class Calculator
      */
     private function createAppliedTaxes(TaxLine $taxifyLineItem)
     {
-        $taxDetailType = $taxifyLineItem->getItemTaxabilityCode() === TaxifyConstants::ITEM_TAX_CODE_FREIGHT
+        $taxDetailType = $taxifyLineItem->getLineNumber() === TaxifyConstants::TAX_DETAIL_TYPE_SHIPPING
             ? TaxifyConstants::TAX_DETAIL_TYPE_SHIPPING
             : TaxifyConstants::TAX_DETAIL_TYPE_PRODUCT_AND_SHIPPING;
 
@@ -260,40 +264,6 @@ class Calculator
         $appliedTax->setRates([$rate]);
 
         return [ $taxDetailType => $appliedTax];
-    }
-
-    /**
-     * Create an empty {@see TaxDetailsInterface}
-     *
-     * This method is used to provide Magento the information it expects while
-     * avoiding a costly tax calculation when we don't want one (or think it
-     * will provide no value)
-     *
-     * @param QuoteDetailsInterface $quoteDetails
-     * @return TaxDetailsInterface
-     */
-    private function createEmptyDetails(QuoteDetailsInterface $quoteDetails)
-    {
-        /** @var TaxDetailsInterface $details */
-        $details = $this->taxDetailsFactory->create();
-
-        $subtotal = 0;
-        $items = [];
-
-        foreach ($quoteDetails->getItems() as $quoteItem) {
-            $taxItem = $this->createEmptyDetailsTaxItem($quoteItem);
-            $subtotal += $taxItem->getRowTotal();
-            // Magento has an undocumented assumption that tax detail items are indexed by code
-            $items[$taxItem->getCode()] = $taxItem;
-        }
-
-        $details->setSubtotal($subtotal)
-            ->setTaxAmount(0)
-            ->setDiscountTaxCompensationAmount(0)
-            ->setAppliedTaxes([])
-            ->setItems($items);
-
-        return $details;
     }
 
     /**
@@ -368,23 +338,6 @@ class Calculator
     }
 
     /**
-     * Determine if an array of QuoteDetailsItemInterface contains only shipping entries
-     *
-     * @param QuoteDetailsItemInterface[] $items
-     * @return bool
-     */
-    private function onlyShipping(array $items)
-    {
-        foreach ($items as $item) {
-            if ($item->getCode() !== 'shipping') {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * Round a number
      *
      * @param number $number
@@ -399,10 +352,10 @@ class Calculator
     /**
      * Retrieve tax label
      *
-     * @param $code
+     * @param string $code
      * @return string
      */
-    private function getTaxLabel($code)
+    private function getTaxLabel(string $code)
     {
         if ($code === TaxifyConstants::TAX_DETAIL_TYPE_PRODUCT_AND_SHIPPING) {
             return __('Sales and Use')->render();

@@ -120,7 +120,7 @@ class TaxifyApi
                     ->setPostalCode($this->scopeConfig->getValue('shipping/origin/postcode'))
                     ->setStreet1($this->scopeConfig->getValue('shipping/origin/street_line1'))
                     ->setStreet2($this->scopeConfig->getValue('shipping/origin/street_line2'))
-            )->setDestinationAddress( // TODO review this with banyan hub
+            )->setDestinationAddress(
                 $this->addressFactory->create()
                     ->setCountry($shippingAddress->getCountryId())
                     ->setRegion($region->getCode() ?? '')
@@ -141,6 +141,7 @@ class TaxifyApi
 
             $request->addLine(
                 $this->taxLineFactory->create()
+                    ->setLineNumber($quoteItem->getCode())
                     ->setItemKey($sku)
                     ->setQuantity($quoteItem->getQuantity())
                     ->setActualExtendedPrice($rowTotal)
