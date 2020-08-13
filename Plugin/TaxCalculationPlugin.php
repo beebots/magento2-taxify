@@ -89,7 +89,7 @@ class TaxCalculationPlugin
             && ! ($quoteDetails->getBillingAddress() === null && $quoteDetails->getShippingAddress() === null);
     }
 
-    public function customerTaxClassIsExempt(int $customerTaxClassId)
+    public function customerTaxClassIsExempt($customerTaxClassId)
     {
         //TODO: Implement this
         return false;

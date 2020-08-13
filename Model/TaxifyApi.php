@@ -3,6 +3,7 @@
 namespace BeeBots\Taxify\Model;
 
 use BeeBots\Taxify\Helper\TaxClassHelper;
+use Magento\Checkout\Model\Session;
 use Magento\Customer\Model\Data\Address;
 use Magento\Directory\Model\Region;
 use Magento\Directory\Model\RegionFactory;
@@ -19,6 +20,8 @@ use rk\Taxify\Responses\CalculateTax;
 use rk\Taxify\Taxify;
 use rk\Taxify\TaxLineFactory;
 use Throwable;
+use function implode;
+use function sha1;
 use function time;
 
 /**
@@ -49,8 +52,14 @@ class TaxifyApi
     /** @var ManagerInterface */
     private $messageManager;
 
+    /** @var Session */
+    private $checkoutSession;
+
     /** @var TaxClasshelper */
     private $taxClassHelper;
+
+    /** @var TaxLineFactory */
+    private $taxLineFactory;
 
     /**
      * TaxifyApi constructor.
@@ -64,6 +73,7 @@ class TaxifyApi
      * @param Config $taxifyConfig
      * @param TaxClasshelper $taxClassHelper
      * @param ManagerInterface $messageManager
+     * @param Session $checkoutSession
      */
     public function __construct(
         CalculateTaxFactory $calculateTaxFactory,
@@ -74,7 +84,8 @@ class TaxifyApi
         LoggerInterface $logger,
         Config $taxifyConfig,
         TaxClasshelper $taxClassHelper,
-        ManagerInterface $messageManager
+        ManagerInterface $messageManager,
+        Session $checkoutSession
     ) {
         $this->calculateTaxFactory = $calculateTaxFactory;
         $this->addressFactory = $addressFactory;
@@ -83,13 +94,13 @@ class TaxifyApi
         $this->scopeConfig = $scopeConfig;
         $this->regionFactory = $regionFactory;
         $this->taxifyConfig = $taxifyConfig;
-        $this->messageManager = $messageManager;
         $this->taxClassHelper = $taxClassHelper;
+        $this->messageManager = $messageManager;
+        $this->checkoutSession = $checkoutSession;
     }
 
     /**
      * Function: getTaxForOrder
-     *
      *
      * @param QuoteDetails $quote
      *
@@ -97,13 +108,18 @@ class TaxifyApi
      */
     public function getTaxForQuote(QuoteDetailsInterface $quote)
     {
-        //TODO: Implement a response cache
         $taxResponse = null;
 
         $shippingAddress = $quote->getShippingAddress();
         if (! $this->shippingAddressIsUsable($shippingAddress)) {
             return $taxResponse;
         }
+
+        $taxResponse = $this->loadFromCache($quote);
+        if ($taxResponse) {
+            return $taxResponse;
+        }
+
         $region = $this->getRegionById($shippingAddress->getRegion()->getRegionId());
         $street1 = $shippingAddress->getStreet()[0] ?? '';
         $street2 = $shippingAddress->getStreet()[1] ?? '';
@@ -153,6 +169,7 @@ class TaxifyApi
             $taxify = new Taxify($this->taxifyConfig->getApiKey(), Taxify::ENV_PROD, false);
             $communicator = new Communicator($taxify);
             $taxResponse = $request->execute($communicator);
+            $this->cacheTaxResponse($taxResponse, $quote);
         } catch (Throwable $e) {
             $this->logger->error('Error getting rates from Taxify', ['exception' => $e]);
         }
@@ -161,11 +178,13 @@ class TaxifyApi
     }
 
     /**
+     * Function: getRegionById
+     *
      * @param int $regionId
      *
      * @return Region
      */
-    protected function getRegionById($regionId)
+    protected function getRegionById(int $regionId)
     {
         /** @var Region $region */
         $region = $this->regionFactory->create();
@@ -176,9 +195,9 @@ class TaxifyApi
     private function getTaxifyTaxabilityCode($quoteItem)
     {
         $taxClassId = $quoteItem->getTaxClassKey()
-        && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
-            ? $quoteItem->getTaxClassKey()->getValue()
-            : $quoteItem->getTaxClassId();
+            && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
+                ? $quoteItem->getTaxClassKey()->getValue()
+                : $quoteItem->getTaxClassId();
 
         $taxClassName = $this->taxClassHelper->getMagentoTaxClassNameById($taxClassId);
         return $this->taxClassHelper->getTaxifyTaxabilityCodeFromMagentoTaxClassName($taxClassName);
@@ -189,5 +208,42 @@ class TaxifyApi
         return $shippingAddress
             && $shippingAddress->getCountryId()
             && $shippingAddress->getPostcode();
+    }
+
+    private function loadFromCache(QuoteDetails $quote)
+    {
+        $key = $this->getCacheKey($quote);
+        $cachedKey = $this->checkoutSession->getData('tax_cache_key');
+        if ($key === $cachedKey) {
+            return $this->checkoutSession->getData('tax_cache_value');
+        }
+        return false;
+    }
+
+    private function cacheTaxResponse($taxResponse, QuoteDetailsInterface $quote)
+    {
+        $key = $this->getCacheKey($quote);
+        $this->checkoutSession->setData('tax_cache_key', $key);
+        $this->checkoutSession->setData('tax_cache_value', $taxResponse);
+    }
+
+    private function getCacheKey(QuoteDetails $quote)
+    {
+        $keys = [];
+        $shippingAddress = $quote->getShippingAddress();
+        $keys[] = $shippingAddress->getStreet()[0] ?? '';
+        $keys[] = $shippingAddress->getStreet()[1] ?? '';
+        $keys[] = $shippingAddress->getCity();
+        $keys[] = $shippingAddress->getRegionId();
+        $keys[] = $shippingAddress->getPostcode();
+        $keys[] = $shippingAddress->getCountryId();
+        $keys[] = $quote->getId();
+        foreach ($quote->getItems() as $quoteItem) {
+            $extensionAttributes = $quoteItem->getExtensionAttributes();
+            $keys[] = $extensionAttributes->getProductSku();
+            $keys[] = $quoteItem->getQuantity();
+        }
+        $key = sha1(implode('|', $keys));
+        return $key;
     }
 }
