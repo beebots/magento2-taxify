@@ -59,8 +59,6 @@ class TaxCalculationPlugin
 
         $taxDetailsDataObject = $this->calculator->calculateTax($quoteDetails, $response, $round);
 
-//        /** @var TaxDetailsInterface $taxDetailsDataObject */
-//        $taxDetailsDataObject = $super(...$arguments);
         return $taxDetailsDataObject;
     }
 

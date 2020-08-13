@@ -4,7 +4,6 @@ namespace BeeBots\Taxify\Plugin;
 
 use BeeBots\Taxify\Model\Config;
 use BeeBots\Taxify\Model\TaxifyConstants;
-use Magento\Quote\Api\Data\ShippingAssignmentInterface;
 use Magento\Quote\Model\Quote\Item\AbstractItem;
 use Magento\Tax\Api\Data\QuoteDetailsItemExtensionFactory;
 use Magento\Tax\Api\Data\QuoteDetailsItemExtensionInterface;
@@ -56,18 +55,12 @@ class CommonTaxCollectorPlugin
         /** @var AbstractItem $item */
         $item = $arguments[1];
 
-        //$attribute = $item->getProduct()->getCustomAttribute('tax_class_id');
-        //$taxClassId = $attribute ? $attribute->getValue() : null;
-
         $extensionData = $this->getExtensionAttributes($quoteDetailsItem);
         $extensionData->setProductSku($item->getProduct()->getSku());
         $extensionData->setProductName($item->getProduct()->getName());
         $extensionData->setProductId($item->getProduct()->getId());
         $extensionData->setQuoteItemId($item->getId());
         $extensionData->setCustomerId($item->getQuote()->getCustomerId());
-//        if ($taxClassId) {
-//            $extensionData->setTaxClassId($taxClassId);
-//        }
 
         if ($quote = $item->getQuote()) {
             $extensionData->setQuoteId($quote->getId());
