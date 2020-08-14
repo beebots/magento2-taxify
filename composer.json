@@ -6,12 +6,6 @@
         "magento/module-tax": ">=100.3.4",
         "rk/taxify": "~2.1.0"
     },
-    "repositories": {
-        "rk-taxify": {
-            "type": "git",
-            "url": "git@github.com:rk/taxify.git"
-        }
-    },
     "type": "magento2-module",
     "version": "0.1.0",
     "license": [
@@ -29,13 +23,5 @@
         "psr-4": {
             "BeeBots\\Taxify\\": ""
         }
-    },
-    "extra": {
-        "map": [
-            [
-                "*",
-                "BeeBots/Taxify"
-            ]
-        ]
     }
 }
