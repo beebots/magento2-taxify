@@ -6,6 +6,7 @@ use BeeBots\Taxify\Model\Calculator;
 use BeeBots\Taxify\Model\Config;
 use BeeBots\Taxify\Model\TaxifyApi;
 use Magento\Tax\Api\Data\QuoteDetailsInterface;
+use Magento\Tax\Api\Data\TaxClassKeyInterface;
 use Magento\Tax\Api\Data\TaxDetailsInterface;
 use Magento\Tax\Model\TaxCalculation;
 
@@ -43,6 +44,15 @@ class TaxCalculationPlugin
         $this->taxClassHelper = $taxClassHelper;
     }
 
+    /**
+     * Function: aroundCalculateTax
+     *
+     * @param TaxCalculation $taxCalculation
+     * @param callable $super
+     * @param mixed ...$arguments
+     *
+     * @return TaxDetailsInterface
+     */
     public function aroundCalculateTax(
         TaxCalculation $taxCalculation,
         callable $super,
@@ -53,7 +63,7 @@ class TaxCalculationPlugin
 
         if (! $this->config->isEnabled()
             || !$this->quoteIsUsableForTaxifyCall($quoteDetails)
-            || $this->customerTaxClassIsExempt($quoteDetails->getCustomerTaxClassId())) {
+            || $this->customerTaxClassIsExempt($quoteDetails)) {
             return $super(...$arguments);
         }
 
@@ -82,6 +92,13 @@ class TaxCalculationPlugin
         return $storeId ?: $this->storeManager->getStore()->getStoreId();
     }
 
+    /**
+     * Function: quoteIsUsableForTaxifyCall
+     *
+     * @param $quoteDetails
+     *
+     * @return bool
+     */
     private function quoteIsUsableForTaxifyCall($quoteDetails)
     {
         $items = $quoteDetails->getItems();
@@ -89,9 +106,27 @@ class TaxCalculationPlugin
             && ! ($quoteDetails->getBillingAddress() === null && $quoteDetails->getShippingAddress() === null);
     }
 
-    public function customerTaxClassIsExempt($customerTaxClassId)
+    /**
+     * Function: customerTaxClassIsExempt
+     *
+     * @param $customerTaxClassId
+     *
+     * @return bool
+     */
+    public function customerTaxClassIsExempt(QuoteDetailsInterface $quoteDetails)
     {
-        //TODO: Implement this
-        return false;
+        $customerTaxClassId = $quoteDetails->getCustomerTaxClassId();
+        $taxClassKey = $quoteDetails->getCustomerTaxClassKey();
+        if ($taxClassKey && $taxClassKey->getType() === TaxClassKeyInterface::TYPE_ID) {
+            $customerTaxClassId = $taxClassKey->getValue();
+        }
+
+        if (! $customerTaxClassId) {
+            return false;
+        }
+
+        $mageTaxClassName = $this->taxClassHelper->getMagentoTaxClassNameById($customerTaxClassId);
+        $isExempt = $this->config->getMageTaxClassNameForExemptCustomer() === $mageTaxClassName;
+        return $isExempt;
     }
 }

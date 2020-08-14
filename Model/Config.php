@@ -152,4 +152,14 @@ class Config
     {
         return $this->scopeConfig->getValue('beebots/taxify/mage_tax_class_name_for_taxable');
     }
+
+    /**
+     * Function: getMageTaxClassNameForExemptCustomer
+     *
+     * @return mixed
+     */
+    public function getMageTaxClassNameForExemptCustomer()
+    {
+        return $this->scopeConfig->getValue('beebots/taxify/mage_tax_class_name_for_exempt_customer');
+    }
 }

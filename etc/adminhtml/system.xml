@@ -63,6 +63,10 @@
                     <label>Magento Tax Class Name For Supplements</label>
                     <config_path>beebots/taxify/mage_tax_class_name_for_supplements</config_path>
                 </field>
+                <field id="mage_tax_class_name_for_exempt_customer" translate="label" sortOrder="14" type="text" showInDefault="1" showInStore="0" showInWebsite="0" canRestore="0">
+                    <label>Magento Tax Class Name For Exempt Customers</label>
+                    <config_path>beebots/taxify/mage_tax_class_name_for_exempt_customer</config_path>
+                </field>
             </group>
         </section>
     </system>

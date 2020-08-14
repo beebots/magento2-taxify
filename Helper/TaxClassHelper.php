@@ -92,6 +92,8 @@ class TaxClassHelper
                 return TaxifyConstants::ITEM_TAX_CODE_PROSERVICE;
             case $this->taxifyConfig->getMageTaxClassNameForSupplements():
                 return TaxifyConstants::ITEM_TAX_CODE_SUPPLEMENTS;
+            case $this->taxifyConfig->getMageTaxClassNameForExemptCustomer():
+                return TaxifyConstants::CUST_TAX_CODE_RESALE;
             default:
                 return TaxifyConstants::ITEM_TAX_CODE_TAXABLE;
         }
