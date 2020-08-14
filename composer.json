@@ -3,7 +3,7 @@
     "description": "",
     "require": {
         "php": ">=7.1.0",
-        "magento/module-tax": "null",
+        "magento/module-tax": ">=100.3.4",
         "rk/taxify": "~2.1.0"
     },
     "repositories": {
