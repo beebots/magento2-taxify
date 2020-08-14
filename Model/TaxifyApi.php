@@ -192,17 +192,31 @@ class TaxifyApi
         return $region;
     }
 
+    /**
+     * Function: getTaxifyTaxabilityCode
+     *
+     * @param $quoteItem
+     *
+     * @return string
+     */
     private function getTaxifyTaxabilityCode($quoteItem)
     {
         $taxClassId = $quoteItem->getTaxClassKey()
-            && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
-                ? $quoteItem->getTaxClassKey()->getValue()
-                : $quoteItem->getTaxClassId();
+        && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
+            ? $quoteItem->getTaxClassKey()->getValue()
+            : $quoteItem->getTaxClassId();
 
         $taxClassName = $this->taxClassHelper->getMagentoTaxClassNameById($taxClassId);
         return $this->taxClassHelper->getTaxifyTaxabilityCodeFromMagentoTaxClassName($taxClassName);
     }
 
+    /**
+     * Function: shippingAddressIsUsable
+     *
+     * @param Address $shippingAddress
+     *
+     * @return bool
+     */
     private function shippingAddressIsUsable(Address $shippingAddress)
     {
         return $shippingAddress
@@ -210,23 +224,45 @@ class TaxifyApi
             && $shippingAddress->getPostcode();
     }
 
+    /**
+     * Function: loadFromCache
+     *
+     * @param QuoteDetails $quote
+     *
+     * @return bool|mixed|null
+     */
     private function loadFromCache(QuoteDetails $quote)
     {
+        $cachePrefix = $this->getCachePrefix($quote);
         $key = $this->getCacheKey($quote);
-        $cachedKey = $this->checkoutSession->getData('tax_cache_key');
+        $cachedKey = $this->checkoutSession->getData($cachePrefix . 'key');
         if ($key === $cachedKey) {
-            return $this->checkoutSession->getData('tax_cache_value');
+            return $this->checkoutSession->getData($cachePrefix . 'value');
         }
         return false;
     }
 
-    private function cacheTaxResponse($taxResponse, QuoteDetailsInterface $quote)
+    /**
+     * Function: cacheTaxResponse
+     *
+     * @param $taxResponse
+     * @param QuoteDetails $quote
+     */
+    private function cacheTaxResponse($taxResponse, QuoteDetails $quote)
     {
+        $cachePrefix = $this->getCachePrefix($quote);
         $key = $this->getCacheKey($quote);
-        $this->checkoutSession->setData('tax_cache_key', $key);
-        $this->checkoutSession->setData('tax_cache_value', $taxResponse);
+        $this->checkoutSession->setData($cachePrefix . 'key', $key);
+        $this->checkoutSession->setData($cachePrefix . 'value', $taxResponse);
     }
 
+    /**
+     * Function: getCacheKey
+     *
+     * @param QuoteDetails $quote
+     *
+     * @return string
+     */
     private function getCacheKey(QuoteDetails $quote)
     {
         $keys = [];
@@ -247,4 +283,59 @@ class TaxifyApi
         return $key;
     }
 
+    /**
+     * Function: isOnlyShipping
+     *
+     * @param QuoteDetails $quote
+     *
+     * @return bool
+     */
+    private function isOnlyShipping(QuoteDetails $quote)
+    {
+        $items = $quote->getItems();
+        foreach ($items as $item) {
+            if ($item->getCode() !== 'shipping') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Function: isOnlyShipping
+     *
+     * @param QuoteDetails $quote
+     *
+     * @return bool
+     */
+    private function isMissingShipping(QuoteDetails $quote)
+    {
+        $items = $quote->getItems();
+        foreach ($items as $item) {
+            if ($item->getCode() === 'shipping') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Function: getCachePrefix
+     *
+     * @param QuoteDetails $quote
+     *
+     * @return string
+     */
+    private function getCachePrefix(QuoteDetails $quote)
+    {
+        $cachePrefix = 'tax_cache_';
+        if ($this->isOnlyShipping($quote)) {
+            $cachePrefix = 'shipping_' . $cachePrefix;
+        }
+        if ($this->isMissingShipping($quote)) {
+            $cachePrefix = 'item_tax_cache_';
+        }
+        return $cachePrefix;
+    }
 }
