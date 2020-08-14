@@ -2,7 +2,10 @@
 
 namespace BeeBots\Taxify\Model;
 
+<<<<<<< HEAD
 use BeeBots\Taxify\Helper\TaxClassHelper;
+=======
+>>>>>>> 6b5fd66b5b018f83ef0ac33bcf5dc3221c6a5772
 use Magento\Checkout\Model\Session;
 use Magento\Customer\Model\Data\Address;
 use Magento\Directory\Model\Region;
@@ -55,9 +58,12 @@ class TaxifyApi
     /** @var Session */
     private $checkoutSession;
 
+<<<<<<< HEAD
     /** @var TaxClasshelper */
     private $taxClassHelper;
 
+=======
+>>>>>>> 6b5fd66b5b018f83ef0ac33bcf5dc3221c6a5772
     /** @var TaxLineFactory */
     private $taxLineFactory;
 
@@ -83,7 +89,11 @@ class TaxifyApi
         RegionFactory $regionFactory,
         LoggerInterface $logger,
         Config $taxifyConfig,
+<<<<<<< HEAD
         TaxClasshelper $taxClassHelper,
+=======
+        TaxClassRepositoryInterface $taxClassRepository,
+>>>>>>> 6b5fd66b5b018f83ef0ac33bcf5dc3221c6a5772
         ManagerInterface $messageManager,
         Session $checkoutSession
     ) {
