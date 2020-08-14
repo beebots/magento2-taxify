@@ -247,40 +247,4 @@ class TaxifyApi
         return $key;
     }
 
-    private function loadFromCache(QuoteDetails $quote)
-    {
-        $key = $this->getCacheKey($quote);
-        $cachedKey = $this->checkoutSession->getData('tax_cache_key');
-        if ($key === $cachedKey) {
-            return $this->checkoutSession->getData('tax_cache_value');
-        }
-        return false;
-    }
-
-    private function cacheTaxResponse($taxResponse, QuoteDetailsInterface $quote)
-    {
-        $key = $this->getCacheKey($quote);
-        $this->checkoutSession->setData('tax_cache_key', $key);
-        $this->checkoutSession->setData('tax_cache_value', $taxResponse);
-    }
-
-    private function getCacheKey(QuoteDetails $quote)
-    {
-        $keys = [];
-        $shippingAddress = $quote->getShippingAddress();
-        $keys[] = $shippingAddress->getStreet()[0] ?? '';
-        $keys[] = $shippingAddress->getStreet()[1] ?? '';
-        $keys[] = $shippingAddress->getCity();
-        $keys[] = $shippingAddress->getRegionId();
-        $keys[] = $shippingAddress->getPostcode();
-        $keys[] = $shippingAddress->getCountryId();
-        $keys[] = $quote->getId();
-        foreach ($quote->getItems() as $quoteItem) {
-            $extensionAttributes = $quoteItem->getExtensionAttributes();
-            $keys[] = $extensionAttributes->getProductSku();
-            $keys[] = $quoteItem->getQuantity();
-        }
-        $key = sha1(implode('|', $keys));
-        return $key;
-    }
 }
