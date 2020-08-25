@@ -278,6 +278,7 @@ class TaxifyApi
             $extensionAttributes = $quoteItem->getExtensionAttributes();
             $keys[] = $extensionAttributes->getProductSku();
             $keys[] = $quoteItem->getQuantity();
+            $keys[] = $quoteItem->getUnitPrice(); // The shipping quote item's unit price changes when the shipping rate changes
         }
         $key = sha1(implode('|', $keys));
         return $key;
