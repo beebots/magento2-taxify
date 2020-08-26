@@ -4,20 +4,8 @@ That's all it does at this point. It does not push commited orders to Taxify.
 
 
 ## Installation
-Add `beebots/magento2-taxify` to the require section of your `composer.json` file. 
-
-```json
-{
-    "require": {
-        "beebots/magento2-taxify": "^0.1.1"
-    }
-}
-
-
-```
-
 We're not currently published to
-packagist. so add the following to your repositories section:
+packagist. so add the following to the repositories section of your root `composer.json` file:
 
 ```json
 {    
@@ -34,6 +22,12 @@ packagist. so add the following to your repositories section:
         }
     }
 }
+```
+
+Then require in the module like so
+
+```
+composer require "beebots/magento2-taxify:~0.1.1"
 ```
 
 ## Thanks
