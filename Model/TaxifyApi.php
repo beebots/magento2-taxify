@@ -120,7 +120,10 @@ class TaxifyApi
             return $taxResponse;
         }
 
-        $region = $this->getRegionById($shippingAddress->getRegion()->getRegionId());
+        $region = $shippingAddress->getRegion()->getRegionId()
+            ? $this->getRegionById($shippingAddress->getRegion()->getRegionId())
+            : null;
+
         $street1 = $shippingAddress->getStreet()[0] ?? '';
         $street2 = $shippingAddress->getStreet()[1] ?? '';
         $request = $this->calculateTaxFactory->create()
@@ -172,6 +175,7 @@ class TaxifyApi
             $this->cacheTaxResponse($taxResponse, $quote);
         } catch (Throwable $e) {
             $this->logger->error('Error getting rates from Taxify', ['exception' => $e]);
+            return null;
         }
 
         return $taxResponse;
