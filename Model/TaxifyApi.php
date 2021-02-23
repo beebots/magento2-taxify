@@ -120,9 +120,7 @@ class TaxifyApi
             return $taxResponse;
         }
 
-        $region = $shippingAddress->getRegion()->getRegionId()
-            ? $this->getRegionById($shippingAddress->getRegion()->getRegionId())
-            : null;
+        $regionCode = $this->getRegionCodeById($shippingAddress->getRegion()->getRegionId());
 
         $street1 = $shippingAddress->getStreet()[0] ?? '';
         $street2 = $shippingAddress->getStreet()[1] ?? '';
@@ -141,7 +139,7 @@ class TaxifyApi
             )->setDestinationAddress(
                 $this->addressFactory->create()
                     ->setCountry($shippingAddress->getCountryId())
-                    ->setRegion($region->getCode() ?? '')
+                    ->setRegion($regionCode)
                     ->setCity($shippingAddress->getCity() ?? '')
                     ->setPostalCode($shippingAddress->getPostcode())
                     ->setStreet1($street1)
@@ -194,6 +192,23 @@ class TaxifyApi
         $region = $this->regionFactory->create();
         $region->load($regionId);
         return $region;
+    }
+
+    /**
+     * Function: getRegionCodeById
+     *
+     * @param mixed $regionId
+     *
+     * @return string
+     */
+    protected function getRegionCodeById(mixed $regionId)
+    {
+        if (! $regionId) {
+            return '';
+        }
+
+        $region = $this->getRegionById($regionId);
+        return $region->getCode() ?? '';
     }
 
     /**
