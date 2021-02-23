@@ -201,7 +201,7 @@ class TaxifyApi
      *
      * @return string
      */
-    protected function getRegionCodeById(mixed $regionId)
+    protected function getRegionCodeById($regionId)
     {
         if (! $regionId) {
             return '';
