@@ -63,13 +63,13 @@ class TaxClassHelper
     }
 
     /**
-     * Function: getTaxifyTaxabilityCodeFromMagentoTaxClassName
+     * Function: getTaxifyItemTaxabilityCodeFromMagentoTaxClassName
      *
      * @param string $taxClassName
      *
      * @return string
      */
-    public function getTaxifyTaxabilityCodeFromMagentoTaxClassName(string $taxClassName)
+    public function getTaxifyItemTaxabilityCodeFromMagentoTaxClassName(string $taxClassName)
     {
         switch ($taxClassName) {
             case $this->taxifyConfig->getMageTaxClassNameForCandy():
@@ -92,10 +92,22 @@ class TaxClassHelper
                 return TaxifyConstants::ITEM_TAX_CODE_PROSERVICE;
             case $this->taxifyConfig->getMageTaxClassNameForSupplements():
                 return TaxifyConstants::ITEM_TAX_CODE_SUPPLEMENTS;
-            case $this->taxifyConfig->getMageTaxClassNameForExemptCustomer():
-                return TaxifyConstants::CUST_TAX_CODE_RESALE;
             default:
                 return TaxifyConstants::ITEM_TAX_CODE_TAXABLE;
         }
+    }
+
+    /**
+     * Function: getTaxifyCustomerTaxabilityCodeFromMagentoTaxClassName
+     *
+     * @param string $taxClassName
+     *
+     * @return string
+     */
+    public function getTaxifyCustomerTaxabilityCodeFromMagentoTaxClassName(string $taxClassName)
+    {
+        return $taxClassName === $this->taxifyConfig->getMageTaxClassNameForExemptCustomer()
+            ? TaxifyConstants::CUST_TAX_CODE_RESALE
+            : TaxifyConstants::CUST_TAX_CODE_RETAIL;
     }
 }

@@ -144,16 +144,20 @@ class TaxifyApi
                     ->setPostalCode($shippingAddress->getPostcode())
                     ->setStreet1($street1)
                     ->setStreet2($street2)
-            );
+            )->setCustomerTaxabilityCode($this->getTaxifyCustomerTaxabilityCode($quote));
+
+        if ($quote->getCustomerId()) {
+            $request->setCustomerKey($quote->getCustomerId());
+        }
 
         foreach ($quote->getItems() as $quoteItem) {
             $extensionAttributes = $quoteItem->getExtensionAttributes();
 
             $sku = $extensionAttributes->getProductSku();
             $priceForTaxCalculation = $extensionAttributes->getPriceForTaxCalculation() ?? $quoteItem->getUnitPrice();
-            $rowTotal = $priceForTaxCalculation * $quoteItem->getQuantity();
+            $rowTotal = $priceForTaxCalculation * $quoteItem->getQuantity() - $quoteItem->getDiscountAmount();
             $productName = $extensionAttributes->getProductName();
-            $taxifyTaxabilityCode = $this->getTaxifyTaxabilityCode($quoteItem);
+            $taxifyTaxabilityCode = $this->getTaxifyItemTaxabilityCode($quoteItem);
 
             $request->addLine(
                 $this->taxLineFactory->create()
@@ -188,7 +192,6 @@ class TaxifyApi
      */
     protected function getRegionById(int $regionId)
     {
-        /** @var Region $region */
         $region = $this->regionFactory->create();
         $region->load($regionId);
         return $region;
@@ -212,21 +215,50 @@ class TaxifyApi
     }
 
     /**
-     * Function: getTaxifyTaxabilityCode
+     * Function: getTaxifyItemTaxabilityCode
      *
      * @param $quoteItem
      *
      * @return string
      */
-    private function getTaxifyTaxabilityCode($quoteItem)
+    private function getTaxifyItemTaxabilityCode($quoteItem)
     {
         $taxClassId = $quoteItem->getTaxClassKey()
-        && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
-            ? $quoteItem->getTaxClassKey()->getValue()
-            : $quoteItem->getTaxClassId();
+            && $quoteItem->getTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
+                ? $quoteItem->getTaxClassKey()->getValue()
+                : $quoteItem->getTaxClassId();
 
         $taxClassName = $this->taxClassHelper->getMagentoTaxClassNameById($taxClassId);
-        return $this->taxClassHelper->getTaxifyTaxabilityCodeFromMagentoTaxClassName($taxClassName);
+        return $this->taxClassHelper->getTaxifyItemTaxabilityCodeFromMagentoTaxClassName($taxClassName);
+    }
+
+    /**
+     * Function: getTaxifyCustomerTaxabilityCode
+     *
+     * @param $quote
+     *
+     * @return string
+     */
+    private function getTaxifyCustomerTaxabilityCode($quote)
+    {
+        $taxClassId = $this->getCustomerTaxClassId($quote);
+        $taxClassName = $this->taxClassHelper->getMagentoTaxClassNameById($taxClassId);
+        return $this->taxClassHelper->getTaxifyCustomerTaxabilityCodeFromMagentoTaxClassName($taxClassName);
+    }
+
+    /**
+     * Function: getTaxifyItemTaxabilityCode
+     *
+     * @param $quote
+     *
+     * @return string
+     */
+    private function getCustomerTaxClassId($quote)
+    {
+        return $quote->getCustomerTaxClassKey()
+            && $quote->getCustomerTaxClassKey()->getType() === TaxClassKeyInterface::TYPE_ID
+                ? $quote->getCustomerTaxClassKey()->getValue()
+                : $quote->getCustomerTaxClassId();
     }
 
     /**
@@ -293,6 +325,7 @@ class TaxifyApi
         $keys[] = $shippingAddress->getPostcode();
         $keys[] = $shippingAddress->getCountryId();
         $keys[] = $quote->getId();
+        $keys[] = $this->getCustomerTaxClassId($quote);
 
         foreach ($quote->getItems() as $quoteItem) {
             $extensionAttributes = $quoteItem->getExtensionAttributes();
@@ -301,6 +334,7 @@ class TaxifyApi
             // The shipping quote item's unit price changes when the shipping rate changes.
             // Round to 2 decimals to avoid extra zeros changing the cache key
             $keys[] = round($quoteItem->getUnitPrice() ?? 0.00, 2);
+            $keys[] = round($quoteItem->getDiscountAmount() ?? 0.00, 2);
         }
         $key = sha1(implode('|', $keys));
         return $key;
