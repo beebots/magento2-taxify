@@ -2,7 +2,7 @@
     "name": "beebots/magento2-taxify",
     "description": "This Magento module gets realtime tax rates from Taxify",
     "require": {
-        "php": "^7.1.0",
+        "php": "^7.1.0 || ^8.1",
         "magento/module-tax": "^100.3",
         "beebots/taxify": "^2.1.0"
     },
