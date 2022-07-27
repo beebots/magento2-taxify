@@ -3,11 +3,11 @@
     "description": "This Magento module gets realtime tax rates from Taxify",
     "require": {
         "php": "^7.1.0 || ^8.1",
-        "magento/module-tax": "^100.3",
-        "beebots/taxify": "^2.1.0"
+        "magento/module-tax": "100.4.*",
+        "beebots/taxify": "dev-issue-php-8.1-support"
     },
     "type": "magento2-module",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "license": "MIT",
     "support": {
         "docs": "https://github.com/beebots/magento2-taxify",
