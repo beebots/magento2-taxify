@@ -279,8 +279,7 @@ class Calculator
         /** @var TaxDetailsItemInterface $taxDetailsItem */
         $taxDetailsItem = $this->taxDetailsItemFactory->create();
 
-        $rowTotal = ($quoteDetailsItem->getUnitPrice() * $quoteDetailsItem->getQuantity()) -
-            $quoteDetailsItem->getDiscountAmount();
+        $rowTotal = ($quoteDetailsItem->getUnitPrice() * $quoteDetailsItem->getQuantity());
 
         $taxDetailsItem->setCode($quoteDetailsItem->getCode())
             ->setType($quoteDetailsItem->getType())
