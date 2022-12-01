@@ -43,11 +43,11 @@ class TaxClassHelper
     /**
      * Function: getMagentoTaxClassNameById
      *
-     * @param int $taxClassId
+     * @param ?int $taxClassId
      *
      * @return string
      */
-    public function getMagentoTaxClassNameById(int $taxClassId)
+    public function getMagentoTaxClassNameById(?int $taxClassId)
     {
         if (! $taxClassId) {
             return 'None';
