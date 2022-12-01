@@ -125,7 +125,7 @@ class TaxifyApi
         $street1 = $shippingAddress->getStreet()[0] ?? '';
         $street2 = $shippingAddress->getStreet()[1] ?? '';
         $request = $this->calculateTaxFactory->create()
-            ->setDocumentKey('quote' . $quote->getId())
+            ->setDocumentKey('quote_' . ($quote->getId() ?? rand()))
             ->setTaxDate(time())
             ->setCommitted(false)
             ->setOriginAddress(
