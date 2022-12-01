@@ -272,7 +272,9 @@ class TaxifyApi
     {
         return $shippingAddress
             && $shippingAddress->getCountryId()
-            && $shippingAddress->getPostcode();
+            && $shippingAddress->getPostcode()
+            && $shippingAddress->getRegion()
+            && $shippingAddress->getRegion()->getRegionId();
     }
 
     /**
