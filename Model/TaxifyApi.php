@@ -331,6 +331,7 @@ class TaxifyApi
             $extensionAttributes = $quoteItem->getExtensionAttributes();
             $keys[] = $extensionAttributes->getProductSku();
             $keys[] = $quoteItem->getQuantity();
+            $keys[] = $quoteItem->getCode();
             // The shipping quote item's unit price changes when the shipping rate changes.
             // Round to 2 decimals to avoid extra zeros changing the cache key
             $keys[] = round($quoteItem->getUnitPrice() ?? 0.00, 2);
